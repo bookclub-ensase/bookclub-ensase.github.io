@@ -172,6 +172,7 @@
 </dialog>
 
 <script src="contenus.js"></script>
+<script src="config.js"></script>
 <script>
 /* ================= Données ================= */
 const TYPES = {
@@ -361,7 +362,8 @@ function renderLibrary(){
 const seances = () => (window.BOOKCLUB_SEANCES || []).slice().sort((a, b) => (a.date + (a.heure || '')).localeCompare(b.date + (b.heure || '')));
 const isPast = s => new Date(s.date + 'T23:59:59') < new Date();
 const dayLabel = s => new Date(s.date + 'T12:00').toLocaleDateString('fr-FR', {weekday: 'long', day: 'numeric', month: 'long'});
-const heureLabel = h => h ? h.replace(':', 'h').replace(/h00$/, 'h') : '';
+const heureLabel = h => h ? h.replace(/^0/, '').replace(':', 'h').replace(/h00$/, 'h') : '';
+const horaire = s => s.heure ? heureLabel(s.heure) + (s.fin ? '–' + heureLabel(s.fin) : '') : '';
 function lectures(s){
   const linked = (s.textes || []).map(id => items.find(i => i.id === id)).filter(Boolean)
     .map(it => `<button class="chip" data-id="${it.id}"><i class="dot" data-t="${it.type}"></i>${esc(it.title)}</button>`).join('');
@@ -373,7 +375,7 @@ function seanceHTML(s){
   return `<article class="seance${isPast(s) ? ' is-past' : ''}">
     <div class="s-date"><span class="s-day">${d.toLocaleDateString('fr-FR', {weekday: 'short'})} ${d.getDate()}</span><span class="s-month">${d.toLocaleDateString('fr-FR', {month: 'long', year: 'numeric'})}</span></div>
     <div class="s-body">
-      <div class="s-meta">${[heureLabel(s.heure), s.salle && 'Salle : ' + esc(s.salle)].filter(Boolean).join(' · ')}</div>
+      <div class="s-meta">${[horaire(s), s.salle && 'Salle : ' + esc(s.salle)].filter(Boolean).join(' · ')}</div>
       <h3>${esc(s.titre || 'Séance')}</h3>
       ${lectures(s)}
       ${s.description ? `<p>${esc(s.description)}</p>` : ''}
@@ -389,7 +391,7 @@ function renderCalendar(){
   const next = up[0];
   document.getElementById('nextSeance').innerHTML = next ? `<button class="next-seance" id="nextBtn">
     <span class="kicker">Prochaine séance</span>
-    <span>${dayLabel(next)}${next.heure ? ', ' + heureLabel(next.heure) : ''}${next.salle ? ' · ' + esc(next.salle) : ''}</span>
+    <span>${dayLabel(next)}${next.heure ? ', ' + horaire(next) : ''}${next.salle ? ' · Salle : ' + esc(next.salle) : ''}</span>
     ${(next.textes || []).length || next.lecture ? `<span class="s-libre">À lire : ${esc([...(next.textes || []).map(id => items.find(i => i.id === id)?.title).filter(Boolean), next.lecture].filter(Boolean).join(', '))}</span>` : ''}
   </button>` : '';
   document.getElementById('nextBtn')?.addEventListener('click', () => { document.querySelector('[data-view=calendar]').click(); scrollTo({top: 0, behavior: 'smooth'}); });
@@ -568,6 +570,19 @@ document.getElementById('importFile').addEventListener('change', async e => {
 
 /* ================= Démarrage ================= */
 (async () => {
+  // contenu en ligne (back office partagé) ; contenus.js sert de secours
+  const CFG = window.BOOKCLUB_CONFIG || {};
+  if(CFG.supabaseUrl && CFG.supabaseKey){
+    try{
+      const res = await fetch(CFG.supabaseUrl + '/rest/v1/site?id=eq.contenu&select=data', {headers: {apikey: CFG.supabaseKey}});
+      const row = res.ok ? (await res.json())[0] : null;
+      if(row && row.data){
+        window.BOOKCLUB_CONTENUS = row.data.items || [];
+        window.BOOKCLUB_TIROIRS = row.data.drawers || [];
+        window.BOOKCLUB_SEANCES = row.data.seances || [];
+      }
+    }catch(err){ console.warn('Base en ligne injoignable, contenu local utilisé.', err); }
+  }
   const seed = (window.BOOKCLUB_CONTENUS || []).map(it => ({...it, seed: true, created: Date.parse(it.date) || 0}));
   // site public en lecture seule : le contenu vient de contenus.js (modifié par le back office)
   items = seed;
