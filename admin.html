@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Back office · Book Club</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <nav aria-label="Navigation">
+    <a href="index.html" target="_blank">Voir le site ↗</a>
+    <button data-tab="items" aria-current="true">Éléments</button>
+    <button data-tab="drawers">Tiroirs</button>
+    <button data-tab="calendar">Calendrier</button>
+    <button id="logoutBtn">Se déconnecter</button>
+  </nav>
+</header>
+
+<h1 class="intro-title">Back office</h1>
+
+<main>
+  <section id="setup" class="panel" hidden>
+    <h2>À configurer</h2>
+    <p>Le back office n'est pas encore relié à la base en ligne (fichier <code>config.js</code>).</p>
+  </section>
+
+  <section id="login" class="panel" hidden>
+    <h2>Connexion</h2>
+    <form id="loginForm">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" autocomplete="username" required>
+      <label for="pw">Mot de passe</label>
+      <input type="password" id="pw" autocomplete="current-password" required>
+      <div class="err" id="loginErr"></div>
+      <button class="btn primary" type="submit">Entrer</button>
+    </form>
+  </section>
+
+  <div class="notice" id="pubBar" hidden style="max-width:none"><span id="pubMsg"></span></div>
+
+  <!-- Application -->
+  <section id="app" hidden>
+    <div id="tab-items">
+      <div class="section-head">
+        <h2>Éléments</h2>
+        <div class="actions">
+          <button class="btn primary" data-new="scan"><i class="dot" data-t="scan"></i>+ Texte (scan)</button>
+          <button class="btn" data-new="note"><i class="dot" data-t="note"></i>+ Prise de note</button>
+          <button class="btn" data-new="fiche"><i class="dot" data-t="fiche"></i>+ Fiche de lecture</button>
+        </div>
+      </div>
+      <div id="seedNotice"></div>
+      <div class="filters">
+        <span>Catégories</span>
+        <div class="inline" style="justify-content:space-between;text-transform:none">
+          <div class="chips" id="chips"></div>
+          <input class="search" id="search" type="search" placeholder="Rechercher…">
+        </div>
+      </div>
+      <div class="rows" id="rows"></div>
+    </div>
+
+    <div id="tab-drawers" hidden>
+      <div class="section-head">
+        <h2>Tiroirs</h2>
+        <div class="inline"><span class="status" id="drawerStatus"></span><button class="btn primary" id="saveDrawers">Enregistrer les noms</button></div>
+      </div>
+      <div class="drawer-cols" id="drawerCols"></div>
+    </div>
+    <div id="tab-calendar" hidden>
+      <div class="section-head">
+        <h2>Calendrier</h2>
+        <button class="btn primary" id="newSeance">+ Séance</button>
+      </div>
+      <div class="rows" id="seanceRows"></div>
+    </div>
+
+  </section>
+</main>
+
+<!-- Ajouter / modifier -->
+<dialog id="editDlg" class="small">
+  <form id="editForm" class="dlg">
+    <div class="dlg-head">
+      <h2 id="editTitle">Ajouter</h2>
+      <button type="button" class="x" data-close aria-label="Fermer">×</button>
+    </div>
+    <div class="dlg-body">
+      <div class="seg" role="radiogroup" aria-label="Catégorie">
+        <label><input type="radio" name="type" value="scan" checked><i class="dot" data-t="scan"></i>Texte (scan)</label>
+        <label><input type="radio" name="type" value="note"><i class="dot" data-t="note"></i>Prise de note</label>
+        <label><input type="radio" name="type" value="fiche"><i class="dot" data-t="fiche"></i>Fiche de lecture</label>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="fTitle">Titre</label><input type="text" id="fTitle" name="title" required></div>
+        <div class="field"><label for="fDrawer">Tiroir</label><select id="fDrawer" name="drawer"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="fBook">Livre</label><input type="text" id="fBook" name="book"></div>
+        <div class="field"><label for="fAuthor">Auteur·ice</label><input type="text" id="fAuthor" name="author"></div>
+      </div>
+
+      <div class="field">
+        <label>Fichiers <span style="text-transform:none">(images ou PDF)</span></label>
+        <div id="fileList"></div>
+        <label class="drop" id="drop">
+          <input type="file" id="fFiles" multiple accept="image/*,application/pdf">
+          Glissez des fichiers ici ou <u>parcourez</u>
+        </label>
+      </div>
+
+      <div data-for="fiche">
+        <div class="field"><label for="fResume">Résumé</label><textarea id="fResume" name="resume"></textarea></div>
+        <div class="field"><label for="fCitations">Citations</label><textarea id="fCitations" name="citations"></textarea></div>
+        <div class="field"><label for="fAvis">Avis &amp; questions pour le club</label><textarea id="fAvis" name="avis"></textarea></div>
+      </div>
+      <div data-for="note">
+        <div class="field"><label for="fNotes">Notes</label><textarea id="fNotes" name="notes" style="min-height:200px"></textarea></div>
+      </div>
+      <div data-for="scan">
+        <div class="field"><label for="fDesc">Description</label><textarea id="fDesc" name="desc" style="min-height:60px"></textarea></div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <span class="status" id="editStatus"></span>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Annuler</button>
+        <button type="submit" class="btn primary" id="saveBtn">Enregistrer</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Séance -->
+<dialog id="seanceDlg" class="small">
+  <form id="seanceForm" class="dlg">
+    <div class="dlg-head">
+      <h2 id="seanceTitle">Nouvelle séance</h2>
+      <button type="button" class="x" data-close aria-label="Fermer">×</button>
+    </div>
+    <div class="dlg-body">
+      <div class="row2">
+        <div class="field"><label for="sDate">Date</label><input type="date" id="sDate" required></div>
+        <div class="row2" style="gap:8px">
+          <div class="field"><label for="sHeure">Début</label><input type="time" id="sHeure"></div>
+          <div class="field"><label for="sFin">Fin</label><input type="time" id="sFin"></div>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="sSalle">Salle</label><input type="text" id="sSalle" placeholder="Ex. salle B12"></div>
+        <div class="field"><label for="sTitre">Titre <span style="text-transform:none">(facultatif)</span></label><input type="text" id="sTitre" placeholder="Ex. Foucault, suite"></div>
+      </div>
+      <div class="field">
+        <label>Textes à lire</label>
+        <div class="check-list" id="sTextes"></div>
+      </div>
+      <div class="field"><label for="sLecture">Autre lecture <span style="text-transform:none">(texte libre)</span></label><input type="text" id="sLecture" placeholder="Ex. chapitres 2 et 3"></div>
+      <div class="field"><label for="sDesc">Informations</label><textarea id="sDesc" style="min-height:70px"></textarea></div>
+    </div>
+    <div class="dlg-foot">
+      <span class="status" id="seanceStatus"></span>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Annuler</button>
+        <button type="submit" class="btn primary">Enregistrer</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<button class="logo" onclick="location.href='./'" aria-label="Retour au site">BOOK CLUB</button>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script>
+const TYPES = {
+  scan:  {label:'Textes',            one:'Texte'},
+  note:  {label:'Prises de notes',   one:'Prise de note'},
+  fiche: {label:'Fiches de lecture', one:'Fiche de lecture'}
+};
+const ROWS = 7, COLS = 3, N = ROWS * COLS, COL_TYPE = ['scan', 'note', 'fiche'];
+const pad = n => String(n).padStart(2, '0');
+const typeOf = i => COL_TYPE[i % COLS];
+const drawersOf = t => [...Array(N).keys()].filter(i => typeOf(i) === t);
+const defaultName = i => TYPES[typeOf(i)].label + ' ' + pad(Math.floor(i / COLS) + 1);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate = t => new Date(t).toLocaleDateString('fr-FR', {day:'numeric', month:'short', year:'numeric'});
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const $ = s => document.querySelector(s);
+
+let seances = [], editingSeance = null, items = [], drawers = [], filter = 'all', editing = null, pending = [], removed = [];
+
+/* ---------- base en ligne (Supabase) ---------- */
+const CFG = window.BOOKCLUB_CONFIG || {};
+const sb = CFG.supabaseUrl && CFG.supabaseKey && window.supabase ? window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseKey) : null;
+const BUCKET = 'fichiers';
+const STORAGE_PREFIX = (CFG.supabaseUrl || '') + '/storage/v1/object/public/' + BUCKET + '/';
+const chk = ({data, error}) => { if (error) throw error; return data; };
+const isoDate = () => new Date().toISOString().slice(0, 10);
+let version = 0;
+
+async function fetchDoc(){
+  const row = chk(await sb.from('site').select('data, version').eq('id', 'contenu').maybeSingle());
+  const d = row?.data || {};
+  return {data: {drawers: d.drawers || [], items: d.items || [], seances: d.seances || []}, version: row?.version ?? null};
+}
+function apply(doc){
+  version = doc.version;
+  items = doc.data.items;
+  seances = doc.data.seances;
+  drawers = Array.from({length: N}, (_, i) => doc.data.drawers[i] || defaultName(i));
+}
+async function load(){ apply(await fetchDoc()); render(); }
+
+/* Chaque modification repart de la dernière version en ligne : deux membres
+   peuvent travailler en même temps sans écraser le travail de l'autre. */
+async function commit(change){
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const doc = await fetchDoc();
+    doc.data.drawers = Array.from({length: N}, (_, i) => doc.data.drawers[i] || defaultName(i));
+    change(doc.data);
+    let rows;
+    if (doc.version === null) rows = chk(await sb.from('site').insert({id: 'contenu', data: doc.data, version: 1}).select('version'));
+    else rows = chk(await sb.from('site').update({data: doc.data, version: doc.version + 1, updated_at: new Date().toISOString()}).eq('id', 'contenu').eq('version', doc.version).select('version'));
+    if (rows.length) {
+      apply({data: doc.data, version: rows[0].version});
+      bar('Enregistré : visible sur le site tout de suite.');
+      return;
+    }
+  }
+  throw new Error('Quelqu’un d’autre modifie le site en même temps. Réessayez.');
+}
+async function uploadFile(itemId, file){
+  const safe = file.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w.\-]+/g, '-');
+  const path = `${itemId}/${Date.now()}-${safe}`;
+  chk(await sb.storage.from(BUCKET).upload(path, file, {contentType: file.type}));
+  return STORAGE_PREFIX + path.split('/').map(encodeURIComponent).join('/');
+}
+function bar(msg){ $('#pubBar').hidden = false; $('#pubMsg').textContent = msg; }
+
+function show(id){
+  ['setup', 'login', 'app'].forEach(x => $('#' + x).hidden = x !== id);
+  document.querySelectorAll('[data-tab], #logoutBtn').forEach(b => b.hidden = id !== 'app');
+}
+document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-current', x === b));
+  ['items', 'drawers', 'calendar'].forEach(t => $('#tab-' + t).hidden = b.dataset.tab !== t);
+}));
+
+$('#loginForm').addEventListener('submit', async e => {
+  e.preventDefault(); $('#loginErr').textContent = '';
+  try { chk(await sb.auth.signInWithPassword({email: $('#email').value.trim(), password: $('#pw').value})); $('#pw').value = ''; await enter(); }
+  catch { $('#loginErr').textContent = 'E-mail ou mot de passe incorrect.'; }
+});
+$('#logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); show('login'); });
+async function enter(){ await load(); show('app'); }
+
+/* ---------- liste ---------- */
+function render(){
+  const all = `<button class="chip" data-f="all" aria-pressed="${filter === 'all'}">Tout<small>${items.length}</small></button>`;
+  $('#chips').innerHTML = all + Object.entries(TYPES).map(([k, t]) =>
+    `<button class="chip" data-f="${k}" aria-pressed="${filter === k}"><i class="dot" data-t="${k}"></i>${t.label}<small>${items.filter(i => i.type === k).length}</small></button>`).join('');
+  $('#chips').querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { filter = c.dataset.f; render(); }));
+
+  const q = $('#search').value.trim().toLowerCase();
+  const list = [...items].sort((a, b) => (b.date || '').localeCompare(a.date || '')).filter(it => (filter === 'all' || it.type === filter) &&
+    (!q || [it.title, it.book, it.author, drawers[it.drawer]].join(' ').toLowerCase().includes(q)));
+  $('#rows').innerHTML = list.length ? list.map(it => `
+    <div class="row">
+      <span class="pill"><i class="dot" data-t="${it.type}"></i>${TYPES[it.type].one}</span>
+      <div><b>${esc(it.title)}</b><span class="meta">${esc([it.book, it.author].filter(Boolean).join(' — '))}${it.files.length ? ' · ' + it.files.length + ' fichier' + (it.files.length > 1 ? 's' : '') : ''}</span></div>
+      <span class="meta">${esc(drawers[it.drawer])}</span>
+      <span class="meta">${it.date ? fmtDate(it.date) : ''}</span>
+      <div class="actions"><button class="btn" data-edit="${it.id}">Modifier</button><button class="btn danger" data-del="${it.id}">Supprimer</button></div>
+    </div>`).join('') : `<div class="empty" style="margin-top:12px">${items.length ? 'Aucun résultat.' : 'Rien pour l\'instant.'}</div>`;
+  $('#rows').querySelectorAll('[data-edit]').forEach(b => b.addEventListener('click', () => openEdit(items.find(i => i.id === b.dataset.edit))));
+  $('#rows').querySelectorAll('[data-del]').forEach(b => b.addEventListener('click', () => del(items.find(i => i.id === b.dataset.del))));
+
+  // calendrier
+  const sorted = seances.slice().sort((a, b) => (b.date + (b.heure || '')).localeCompare(a.date + (a.heure || '')));
+  $('#seanceRows').innerHTML = sorted.length ? sorted.map(se => `
+    <div class="row">
+      <span class="pill">${fmtDate(se.date)}${se.heure ? ' · ' + se.heure.replace(/^0/, '').replace(':', 'h') + (se.fin ? '–' + se.fin.replace(/^0/, '').replace(':', 'h') : '') : ''}</span>
+      <div><b>${esc(se.titre || 'Séance')}</b><span class="meta">${esc([...(se.textes || []).map(id => items.find(i => i.id === id)?.title).filter(Boolean), se.lecture].filter(Boolean).join(', ') || 'Pas de lecture indiquée')}</span></div>
+      <span class="meta">${esc(se.salle || '')}</span>
+      <span class="meta">${new Date(se.date + 'T23:59') < new Date() ? 'passée' : 'à venir'}</span>
+      <div class="actions"><button class="btn" data-sedit="${se.id}">Modifier</button><button class="btn danger" data-sdel="${se.id}">Supprimer</button></div>
+    </div>`).join('') : '<div class="empty" style="margin-top:12px">Aucune séance.</div>';
+  $('#seanceRows').querySelectorAll('[data-sedit]').forEach(b => b.addEventListener('click', () => openSeance(seances.find(x => x.id === b.dataset.sedit))));
+  $('#seanceRows').querySelectorAll('[data-sdel]').forEach(b => b.addEventListener('click', async () => {
+    const se = seances.find(x => x.id === b.dataset.sdel);
+    if (!confirm(`Supprimer la séance du ${fmtDate(se.date)} ?`)) return;
+    try { await commit(d => { d.seances = d.seances.filter(x => x.id !== se.id); }); } catch (err) { bar('Erreur : ' + err.message); }
+    render();
+  }));
+
+  // tiroirs
+  $('#drawerCols').innerHTML = COL_TYPE.map(t => `<div><h3><i class="dot" data-t="${t}"></i>${TYPES[t].label}</h3>${
+    drawersOf(t).map(i => `<input data-i="${i}" value="${esc(drawers[i])}" aria-label="Tiroir ${i + 1}">`).join('')}</div>`).join('');
+
+}
+$('#search').addEventListener('input', render);
+
+async function del(it){
+  if (!confirm(`Supprimer définitivement « ${it.title} » et ses fichiers ?`)) return;
+  try {
+    await commit(d => {
+      d.items = d.items.filter(i => i.id !== it.id);
+      d.seances.forEach(se => se.textes = (se.textes || []).filter(id => id !== it.id));
+    });
+    await cleanFiles((it.files || []).map(f => f.src));
+  } catch (err) { bar('Erreur : ' + err.message); }
+  render();
+}
+
+async function cleanFiles(srcs){
+  const used = new Set(items.flatMap(i => (i.files || []).map(f => f.src)));
+  const orphans = srcs.filter(s => s && !used.has(s));
+  const paths = orphans.filter(s => s.startsWith(STORAGE_PREFIX)).map(s => s.slice(STORAGE_PREFIX.length).split('/').map(decodeURIComponent).join('/'));
+  if (paths.length) await sb.storage.from(BUCKET).remove(paths);
+}
+$('#saveDrawers').addEventListener('click', async () => {
+  const names = {};
+  document.querySelectorAll('#drawerCols input').forEach(inp => names[+inp.dataset.i] = inp.value.trim() || defaultName(+inp.dataset.i));
+  $('#drawerStatus').textContent = 'Enregistrement…';
+  try { await commit(d => Object.entries(names).forEach(([i, n]) => d.drawers[i] = n)); $('#drawerStatus').textContent = 'Enregistré.'; render(); }
+  catch (err) { $('#drawerStatus').textContent = 'Erreur : ' + err.message; }
+});
+
+/* ---------- séances ---------- */
+const sForm = $('#seanceForm'), sDlg = $('#seanceDlg');
+function openSeance(se){
+  editingSeance = se || null;
+  sForm.reset(); $('#seanceStatus').textContent = '';
+  $('#seanceTitle').textContent = se ? 'Modifier la séance' : 'Nouvelle séance';
+  $('#sDate').value = se?.date || ''; $('#sHeure').value = se?.heure || ''; $('#sFin').value = se?.fin || '';
+  $('#sSalle').value = se?.salle || ''; $('#sTitre').value = se?.titre || '';
+  $('#sLecture').value = se?.lecture || ''; $('#sDesc').value = se?.description || '';
+  const chosen = new Set(se?.textes || []);
+  const order = ['scan', 'fiche', 'note'];
+  const list = items.slice().sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type) || a.title.localeCompare(b.title));
+  $('#sTextes').innerHTML = list.length ? list.map(it => `<label><input type="checkbox" value="${it.id}" ${chosen.has(it.id) ? 'checked' : ''}><i class="dot" data-t="${it.type}"></i>${esc(it.title)}${it.book ? ' <span class="meta">— ' + esc(it.book) + '</span>' : ''}</label>`).join('')
+    : '<span class="meta">Ajoutez d\'abord des textes dans Éléments.</span>';
+  sDlg.showModal();
+}
+$('#newSeance').addEventListener('click', () => openSeance(null));
+sForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const se = {
+    id: editingSeance?.id || uid(),
+    date: $('#sDate').value, heure: $('#sHeure').value, fin: $('#sFin').value,
+    salle: $('#sSalle').value.trim(), titre: $('#sTitre').value.trim(),
+    textes: [...$('#sTextes').querySelectorAll('input:checked')].map(c => c.value),
+    lecture: $('#sLecture').value.trim(), description: $('#sDesc').value.trim()
+  };
+  try {
+    await commit(d => { const k = d.seances.findIndex(x => x.id === se.id); k >= 0 ? d.seances[k] = se : d.seances.push(se); });
+    sDlg.close(); render();
+  } catch (err) { $('#seanceStatus').textContent = 'Erreur : ' + err.message; }
+});
+
+/* ---------- formulaire ---------- */
+const form = $('#editForm'), dlg = $('#editDlg');
+function syncType(){
+  const t = form.type.value;
+  form.querySelectorAll('[data-for]').forEach(el => el.hidden = el.dataset.for !== t);
+  const sel = $('#fDrawer'), prev = sel.value === '' ? -1 : +sel.value;
+  sel.innerHTML = drawersOf(t).map(i => `<option value="${i}">${esc(drawers[i])}</option>`).join('');
+  if (prev >= 0 && typeOf(prev) === t) sel.value = prev;
+}
+form.querySelectorAll('input[name=type]').forEach(r => r.addEventListener('change', syncType));
+
+function renderFiles(){
+  const kept = (editing?.files || []).filter(f => !removed.includes(f.src));
+  $('#fileList').innerHTML =
+    kept.map(f => `<div class="file-row"><a href="${f.src}" target="_blank">${esc(f.name)}</a><button type="button" data-rm="${esc(f.src)}" aria-label="Retirer">×</button></div>`).join('') +
+    pending.map((f, k) => `<div class="file-row new"><span>${esc(f.name)} (nouveau)</span><button type="button" data-rmp="${k}" aria-label="Retirer">×</button></div>`).join('');
+  $('#fileList').querySelectorAll('[data-rm]').forEach(b => b.addEventListener('click', () => { removed.push(b.dataset.rm); renderFiles(); }));
+  $('#fileList').querySelectorAll('[data-rmp]').forEach(b => b.addEventListener('click', () => { pending.splice(+b.dataset.rmp, 1); renderFiles(); }));
+}
+
+function openEdit(it, type, drawer){
+  editing = it || null; pending = []; removed = [];
+  form.reset(); $('#editStatus').textContent = ''; $('#saveBtn').disabled = false;
+  form.type.value = it?.type || type || 'scan';
+  $('#fDrawer').value = '';
+  syncType();
+  if (it) {
+    form.title.value = it.title; form.book.value = it.book; form.author.value = it.author;
+    form.resume.value = it.resume; form.citations.value = it.citations; form.avis.value = it.avis;
+    form.notes.value = it.notes; form.desc.value = it.desc;
+    $('#fDrawer').value = it.drawer;
+  } else if (drawer != null && typeOf(drawer) === form.type.value) $('#fDrawer').value = drawer;
+  $('#editTitle').textContent = it ? 'Modifier' : 'Ajouter';
+  renderFiles();
+  dlg.showModal();
+}
+document.querySelectorAll('[data-new]').forEach(b => b.addEventListener('click', () => openEdit(null, b.dataset.new)));
+
+const drop = $('#drop'), fFiles = $('#fFiles');
+fFiles.addEventListener('change', () => { pending.push(...fFiles.files); fFiles.value = ''; renderFiles(); });
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { pending.push(...[...e.dataTransfer.files].filter(f => /^image\/|pdf$/.test(f.type))); renderFiles(); });
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  const t = form.type.value, id = editing?.id || uid();
+  const kept = (editing?.files || []).filter(f => !removed.includes(f.src));
+  if (t === 'scan' && !kept.length && !pending.length) { $('#editStatus').textContent = 'Ajoutez au moins un fichier.'; return; }
+  $('#saveBtn').disabled = true;
+  try {
+    const uploaded = [];
+    for (const [k, file] of pending.entries()) {
+      $('#editStatus').textContent = `Envoi du fichier ${k + 1}/${pending.length}…`;
+      uploaded.push({name: file.name, type: file.type || (/\.pdf$/i.test(file.name) ? 'application/pdf' : 'image/jpeg'), src: await uploadFile(id, file)});
+    }
+    $('#editStatus').textContent = 'Enregistrement…';
+    const it = {
+      id, type: t, drawer: +form.drawer.value, date: editing?.date || isoDate(),
+      title: form.title.value.trim(), book: form.book.value.trim(), author: form.author.value.trim(),
+      resume: t === 'fiche' ? form.resume.value : '', citations: t === 'fiche' ? form.citations.value : '', avis: t === 'fiche' ? form.avis.value : '',
+      notes: t === 'note' ? form.notes.value : '', desc: t === 'scan' ? form.desc.value : '',
+      files: [...kept, ...uploaded]
+    };
+    await commit(d => { const k = d.items.findIndex(i => i.id === id); k >= 0 ? d.items[k] = it : d.items.unshift(it); });
+    await cleanFiles(removed);
+    dlg.close();
+    render();
+  } catch (err) {
+    $('#editStatus').textContent = 'Erreur : ' + err.message;
+    $('#saveBtn').disabled = false;
+  }
+});
+
+document.querySelectorAll('dialog').forEach(d => {
+  d.addEventListener('click', e => { if (e.target === d) d.close(); });
+  d.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => d.close()));
+});
+
+/* ---------- démarrage ---------- */
+(async () => {
+  if (!sb) return show('setup');
+  if (CFG.clubEmail) $('#email').value = CFG.clubEmail;
+  try { (await sb.auth.getSession()).data.session ? await enter() : show('login'); }
+  catch (err) { show('login'); $('#loginErr').textContent = 'Base en ligne injoignable : ' + err.message; }
+})();
+</script>
+</body>
+</html>
