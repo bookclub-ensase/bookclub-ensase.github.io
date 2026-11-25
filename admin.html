@@ -255,7 +255,12 @@ $('#loginForm').addEventListener('submit', async e => {
   catch { $('#loginErr').textContent = 'E-mail ou mot de passe incorrect.'; }
 });
 $('#logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); show('login'); });
-async function enter(){ await load(); show('app'); }
+async function enter(){
+  await load(); show('app');
+  const q = new URLSearchParams(location.search), t = q.get('add');
+  if (t && TYPES[t]) openEdit(null, t, q.has('drawer') ? +q.get('drawer') : null);
+  if (location.search) history.replaceState(null, '', location.pathname);
+}
 
 /* ---------- liste ---------- */
 function render(){
