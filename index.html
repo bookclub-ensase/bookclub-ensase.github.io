@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Book Club</title>
+<style>
+  @font-face{font-family:"BBB Herthey Futural";src:url("fonts/BBB-Herthey-Futural--15.otf") format("opentype");font-weight:100 300;font-display:swap}
+  @font-face{font-family:"BBB Herthey Futural";src:url("fonts/BBB-Herthey-Futural-40.otf") format("opentype");font-weight:400 500;font-display:swap}
+  @font-face{font-family:"BBB Herthey Futural";src:url("fonts/BBB-Herthey-Futural-95.otf") format("opentype");font-weight:600 900;font-display:swap}
+  :root{
+    --bg:#fff; --ink:#000; --muted:#6b6b6b; --violet:#8781ff;
+    --scan:#8781ff; --scan-bg:#ecebff;
+    --note:#7cc24a; --note-bg:#eef8e1;
+    --fiche:#e05d9a; --fiche-bg:#fbe9f2;
+    --dot:1px dotted #000;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--ink);font-family:"BBB Herthey Futural","Century Gothic",sans-serif;font-size:16px;line-height:1.3;font-weight:400}
+  button,input,select,textarea{font:inherit;color:inherit}
+  a{color:inherit}
+  :focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+
+  /* ---------- nav ---------- */
+  header.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 16px}
+  header.top nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  header.top nav button{background:none;border:0;padding:4px 0;font-size:20px;cursor:pointer;color:var(--ink)}
+  header.top nav button:hover,header.top nav button[aria-current="true"]{text-decoration:underline;text-underline-offset:4px;text-decoration-thickness:1px}
+
+  .intro-title{font-size:clamp(34px,6vw,64px);line-height:1.15;font-weight:400;text-align:center;margin:18px 16px 48px}
+
+  main{padding:0 16px 140px}
+  .section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;padding-bottom:10px;border-bottom:var(--dot);margin-bottom:12px}
+  .section-head h2{font-size:clamp(40px,6vw,64px);line-height:1.15;font-weight:400;margin:0}
+
+  /* ---------- chips (filtres) ---------- */
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip,.btn{display:inline-flex;align-items:center;gap:6px;border:var(--dot);background:#fff;border-radius:8px;padding:8px 8px 4px;
+    font-size:16px;text-transform:uppercase;cursor:pointer;line-height:1.3;white-space:nowrap}
+  .chip small{font-size:inherit;opacity:.55}
+  .chip[aria-pressed="true"],.btn.primary{background:var(--violet);color:#fff;border:1px solid var(--violet)}
+  .btn.danger{color:#c0392b;border-color:#c0392b}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;border:1px solid #000;margin-top:-3px}
+  .dot[data-t=scan]{background:var(--scan)} .dot[data-t=note]{background:var(--note)} .dot[data-t=fiche]{background:var(--fiche)}
+  .filters{display:grid;grid-template-columns:90px 1fr;gap:8px 12px;align-items:center;margin-bottom:24px}
+  .filters > span{text-transform:uppercase}
+
+  /* ---------- accueil ---------- */
+  .home{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,520px);gap:clamp(24px,5vw,72px);align-items:start;margin-top:24px}
+  .intro p{max-width:34ch;font-size:20px;margin:0 0 24px}
+  .legend{list-style:none;padding:0;margin:0;border-top:var(--dot)}
+  .legend li{display:flex;justify-content:space-between;align-items:center;padding:10px 0 8px;border-bottom:var(--dot);text-transform:uppercase}
+  .legend li b{font-weight:400;display:flex;gap:8px;align-items:center}
+  .legend span{font-variant-numeric:tabular-nums}
+  .cabinet{width:100%;height:auto;display:block}
+  .caption{text-align:center;min-height:1.4em;margin-top:8px}
+  .caption b{font-weight:400;text-decoration:underline;text-underline-offset:3px}
+
+  .drawer{cursor:pointer;outline:none}
+  .drawer .face{transition:fill .2s}
+  .drawer[data-t=scan]:hover .face,.drawer[data-t=scan]:focus-visible .face,.drawer[data-t=scan].pulled .face{fill:var(--scan-bg)}
+  .drawer[data-t=note]:hover .face,.drawer[data-t=note]:focus-visible .face,.drawer[data-t=note].pulled .face{fill:var(--note-bg)}
+  .drawer[data-t=fiche]:hover .face,.drawer[data-t=fiche]:focus-visible .face,.drawer[data-t=fiche].pulled .face{fill:var(--fiche-bg)}
+  .drawer .slide{transition:transform .35s cubic-bezier(.2,.8,.2,1);transform-box:fill-box;transform-origin:center}
+  .drawer.pulled .slide{transform:scale(1.07) translateY(2px)}
+
+  /* ---------- tout voir ---------- */
+  .search{border:var(--dot);background:#fff;border-radius:8px;padding:8px 10px 4px;min-width:min(280px,100%);font-size:16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+  .card{background:#fff;border:1px solid #000;border-radius:8px;overflow:hidden;cursor:pointer;text-align:left;padding:0;display:flex;flex-direction:column}
+  .card[data-t=scan]{background:var(--scan-bg)} .card[data-t=note]{background:var(--note-bg)} .card[data-t=fiche]{background:var(--fiche-bg)}
+  .card:hover h3{text-decoration:underline;text-underline-offset:3px}
+  .thumb{aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;border-bottom:1px dashed #000;background:#fff}
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb .glyph{text-transform:uppercase;border:var(--dot);padding:6px 8px 3px;border-radius:8px}
+  .thumb .excerpt{padding:10px;font-size:15px;align-self:stretch;overflow:hidden;display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical}
+  .thumb .count{position:absolute;right:6px;bottom:6px;background:#000;color:#fff;font-size:13px;padding:3px 7px 1px;border-radius:999px}
+  .card .body{padding:8px 10px 10px}
+  .pill{display:flex;align-items:center;gap:6px;font-size:13px;text-transform:uppercase;margin-bottom:4px}
+  .card h3{margin:0;font-size:18px;font-weight:400;line-height:1.2}
+  .card .meta{font-size:14px;margin-top:2px;color:var(--muted)}
+  .empty{padding:40px 0;text-align:center;border:var(--dot);border-radius:8px}
+
+  /* ---------- dialogues ---------- */
+  dialog{border:1px solid #000;padding:0;border-radius:8px;background:#fff;color:var(--ink);width:min(880px,calc(100vw - 32px));max-height:calc(100vh - 48px)}
+  dialog::backdrop{background:rgba(255,255,255,.8)}
+  dialog.small{width:min(580px,calc(100vw - 32px))}
+  .dlg{display:flex;flex-direction:column;max-height:calc(100vh - 48px)}
+  .dlg-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px 10px;border-bottom:var(--dot)}
+  .dlg-head h2{margin:0;font-size:32px;font-weight:400;line-height:1.15}
+  .dlg-body{padding:16px;overflow:auto}
+  .dlg-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:var(--dot)}
+  .x{background:none;border:0;font-size:28px;line-height:1;cursor:pointer;padding:0 4px}
+  .title-input{border:0;background:transparent;font-size:32px;line-height:1.15;padding:0;min-width:0;flex:1;width:100%}
+  .title-input:hover,.title-input:focus{text-decoration:underline;text-underline-offset:4px;outline:none}
+  .kicker{font-size:14px;text-transform:uppercase;display:flex;gap:6px;align-items:center}
+  .actions{display:flex;gap:6px;flex-wrap:wrap}
+
+  form .field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px}
+  form label{text-transform:uppercase;font-size:14px}
+  form input[type=text],form select,form textarea{border:var(--dot);background:#fff;border-radius:8px;padding:8px 10px 5px;width:100%;font-size:16px}
+  form textarea{min-height:90px;resize:vertical;line-height:1.35}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .seg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:18px}
+  .seg label{border:var(--dot);border-radius:8px;padding:8px 8px 4px;cursor:pointer;font-size:16px;display:inline-flex;gap:6px;align-items:center}
+  .seg input{position:absolute;opacity:0;pointer-events:none}
+  .seg label:has(input:checked){background:var(--violet);color:#fff;border:1px solid var(--violet)}
+  .seg label:has(input:focus-visible){outline:2px solid var(--violet);outline-offset:2px}
+  .drop{border:var(--dot);border-radius:8px;padding:24px;text-align:center;cursor:pointer;text-transform:none!important;font-size:16px!important}
+  .drop.over{background:var(--scan-bg)}
+  .drop input{display:none}
+  .files-list{font-size:14px;margin-top:8px}
+  [hidden]{display:none!important}
+
+  .viewer-pages{display:flex;flex-direction:column;gap:12px}
+  .viewer-pages img{width:100%;border:1px solid #000;border-radius:8px}
+  .viewer-pages iframe{width:100%;height:70vh;border:1px solid #000;border-radius:8px}
+  .viewer-pages a.file{text-decoration:underline}
+  .text-block{margin-bottom:18px;padding-bottom:14px;border-bottom:var(--dot)}
+  .text-block h4{margin:0 0 4px;font-size:14px;text-transform:uppercase;font-weight:400}
+  .text-block p{margin:0;white-space:pre-wrap;font-size:18px;line-height:1.4}
+  .inline{display:flex;gap:8px;align-items:center;flex-wrap:wrap;text-transform:uppercase;font-size:14px}
+  .inline select{border:var(--dot);border-radius:8px;padding:6px 8px 3px;background:#fff;text-transform:none;font-size:16px}
+
+  footer.site{text-align:center;font-size:14px;padding:0 16px 120px}
+  footer.site button{background:none;border:0;text-decoration:underline;cursor:pointer;padding:0 4px;font-size:inherit}
+
+  /* logo flottant */
+  .logo{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:4;font-weight:900;font-size:clamp(36px,6vw,64px);line-height:1;color:var(--violet);
+    text-decoration:none;background:none;border:0;cursor:pointer;letter-spacing:-.01em;white-space:nowrap}
+
+  @media (max-width:820px){
+    .home{grid-template-columns:1fr}
+    .cabinet-wrap{order:-1;max-width:460px;margin:0 auto;width:100%}
+    .row2{grid-template-columns:1fr}
+    header.top nav button{font-size:17px}
+    .filters{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <nav class="views" aria-label="Navigation">
+    <button data-view="home" aria-current="true">Le meuble</button>
+    <button data-view="library">Tout voir</button>
+    <button data-add="scan">+ Texte</button>
+    <button data-add="note">+ Prise de note</button>
+    <button data-add="fiche">+ Fiche de lecture</button>
+  </nav>
+</header>
+
+<h1 class="intro-title">Book Club<br>Textes, prises de notes<br>et fiches de lecture</h1>
+
+<main>
+  <!-- Accueil -->
+  <section id="view-home">
+    <div class="section-head">
+      <h2>Le meuble</h2>
+      <div class="actions">
+        <button class="btn primary" data-add="scan"><i class="dot" data-t="scan"></i>+ Ajouter un scan</button>
+        <button class="btn" data-add="note"><i class="dot" data-t="note"></i>+ Ajouter une prise de note</button>
+        <button class="btn" data-add="fiche"><i class="dot" data-t="fiche"></i>+ Ajouter une fiche de lecture</button>
+      </div>
+    </div>
+    <div class="home">
+      <div class="intro">
+        <p>Trois rangées&nbsp;: les textes scannés, les prises de notes des séances et les fiches de lecture. Ouvrez un tiroir pour voir ce qu'il contient.</p>
+        <ul class="legend" id="legend"></ul>
+      </div>
+      <div class="cabinet-wrap">
+        <div id="cabinet"></div>
+        <div class="caption" id="caption">Cliquez sur un tiroir pour l'ouvrir</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bibliothèque -->
+  <section id="view-library" hidden>
+    <div class="section-head">
+      <h2>Tout voir</h2>
+      <input class="search" id="search" type="search" placeholder="Rechercher un titre, un livre…">
+    </div>
+    <div class="filters"><span>Catégories</span><div class="chips" id="libChips"></div></div>
+    <div class="grid" id="libGrid"></div>
+  </section>
+</main>
+
+<footer class="site">
+  Les contenus sont enregistrés dans ce navigateur.
+  <button id="exportBtn">Exporter une sauvegarde</button>·<button id="importBtn">Importer</button>
+  <input type="file" id="importFile" accept="application/json" hidden>
+</footer>
+
+<button class="logo" id="logo" aria-label="Retour au meuble">BOOK CLUB</button>
+
+<!-- Tiroir ouvert -->
+<dialog id="drawerDlg">
+  <div class="dlg">
+    <div class="dlg-head">
+      <div style="display:flex;flex-direction:column;flex:1;min-width:0">
+        <span class="kicker" id="drawerNum">Tiroir</span>
+        <input class="title-input" id="drawerName" aria-label="Nom du tiroir" title="Cliquez pour renommer">
+      </div>
+      <button class="x" data-close aria-label="Fermer">×</button>
+    </div>
+    <div class="dlg-body">
+      <div class="grid" id="drawerGrid"></div>
+    </div>
+    <div class="dlg-foot">
+      <span></span>
+      <button class="btn primary" id="addHere">+ Ajouter dans ce tiroir</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Ajouter -->
+<dialog id="addDlg" class="small">
+  <form id="addForm" class="dlg" method="dialog">
+    <div class="dlg-head">
+      <h2>Ajouter</h2>
+      <button type="button" class="x" data-close aria-label="Fermer">×</button>
+    </div>
+    <div class="dlg-body">
+      <div class="seg" role="radiogroup" aria-label="Catégorie">
+        <label><input type="radio" name="type" value="scan" checked>Texte (scan)</label>
+        <label><input type="radio" name="type" value="note">Prise de note</label>
+        <label><input type="radio" name="type" value="fiche">Fiche de lecture</label>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="fTitle">Titre</label><input type="text" id="fTitle" name="title" required placeholder="Ex. Chapitre 3"></div>
+        <div class="field"><label for="fDrawer">Tiroir</label><select id="fDrawer" name="drawer"></select></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="fBook">Livre</label><input type="text" id="fBook" name="book" placeholder="Titre du livre"></div>
+        <div class="field"><label for="fAuthor">Auteur·ice</label><input type="text" id="fAuthor" name="author"></div>
+      </div>
+
+      <div class="field" data-for="scan">
+        <label>Fichiers <span style="color:var(--muted);font-weight:400">(images ou PDF)</span></label>
+        <label class="drop" id="drop">
+          <input type="file" id="fFiles" multiple accept="image/*,application/pdf">
+          Glissez vos scans ici ou <u>parcourez</u>
+          <div class="files-list" id="filesList"></div>
+        </label>
+      </div>
+
+      <div data-for="fiche">
+        <div class="field"><label for="fResume">Résumé</label><textarea id="fResume" name="resume"></textarea></div>
+        <div class="field"><label for="fCitations">Citations</label><textarea id="fCitations" name="citations"></textarea></div>
+        <div class="field"><label for="fAvis">Avis &amp; questions pour le club</label><textarea id="fAvis" name="avis"></textarea></div>
+      </div>
+
+      <div data-for="note">
+        <div class="field"><label for="fNotes">Notes</label><textarea id="fNotes" name="notes" style="min-height:200px" placeholder="Ce qui s'est dit pendant la séance…"></textarea></div>
+      </div>
+
+      <div data-for="scan">
+        <div class="field"><label for="fDesc">Description</label><textarea id="fDesc" name="desc" style="min-height:60px"></textarea></div>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <span></span>
+      <div class="actions">
+        <button type="button" class="btn" data-close>Annuler</button>
+        <button type="submit" class="btn primary">Ranger dans le tiroir</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- Lecture d'un élément -->
+<dialog id="viewDlg">
+  <div class="dlg">
+    <div class="dlg-head">
+      <div style="min-width:0">
+        <span class="kicker" id="vKicker"></span>
+        <h2 id="vTitle"></h2>
+        <div class="kicker" style="text-transform:none;letter-spacing:0;font-size:13px" id="vMeta"></div>
+      </div>
+      <button class="x" data-close aria-label="Fermer">×</button>
+    </div>
+    <div class="dlg-body" id="vBody"></div>
+    <div class="dlg-foot">
+      <div class="inline">
+        <label for="vMove" style="font-size:13px;color:var(--muted)">Ranger dans</label>
+        <select id="vMove"></select>
+      </div>
+      <button class="btn danger" id="vDelete">Supprimer</button>
+    </div>
+  </div>
+</dialog>
+
+<script src="contenus.js"></script>
+<script>
+/* ================= Données ================= */
+const TYPES = {
+  scan:  {label:'Textes',            one:'Texte'},
+  note:  {label:'Prises de notes',   one:'Prise de note'},
+  fiche: {label:'Fiches de lecture', one:'Fiche de lecture'}
+};
+const ROWS = 7, COLS = 3, N = ROWS * COLS;
+const COL_TYPE = ['scan', 'note', 'fiche'];           // une rangée verticale par catégorie
+const typeOf = i => COL_TYPE[i % COLS];
+const drawersOf = t => [...Array(N).keys()].filter(i => typeOf(i) === t);
+const defaultName = i => TYPES[typeOf(i)].label + ' ' + pad(Math.floor(i / COLS) + 1);
+
+let db, items = [], drawers = [];
+
+function openDB(){
+  return new Promise((res, rej) => {
+    const r = indexedDB.open('bookclub', 1);
+    r.onupgradeneeded = () => {
+      r.result.createObjectStore('items', {keyPath:'id'});
+      r.result.createObjectStore('meta');
+    };
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+function tx(store, mode, fn){
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, mode), s = t.objectStore(store);
+    const out = fn(s);
+    t.oncomplete = () => res(out && 'result' in out ? out.result : out);
+    t.onerror = () => rej(t.error);
+  });
+}
+const getAll  = () => tx('items','readonly', s => s.getAll());
+const putItem = it => tx('items','readwrite', s => s.put(it));
+const delItem = id => tx('items','readwrite', s => s.delete(id));
+const getMeta = k  => tx('meta','readonly', s => s.get(k));
+const setMeta = (k,v) => tx('meta','readwrite', s => s.put(v, k));
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const pad = n => String(n).padStart(2,'0');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDate = t => new Date(t).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'});
+const inDrawer = i => items.filter(it => it.drawer === i);
+
+/* URLs d'objets pour les fichiers (mises en cache) */
+const urlCache = new Map();
+function fileURL(item, k){
+  if(item.files[k].src) return item.files[k].src;
+  const key = item.id + ':' + k;
+  if(!urlCache.has(key)) urlCache.set(key, URL.createObjectURL(item.files[k].blob));
+  return urlCache.get(key);
+}
+
+/* ================= Meuble vectoriel (contour noir et blanc) ================= */
+function rng(seed){ let s = seed * 9301 + 49297; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+
+function ornament(kind, x, y, w, h){
+  const ox = x + w * 0.8, cy = y + h / 2;
+  const rosette = (cx, cyy, r) => {
+    let p = `<circle cx="${cx}" cy="${cyy}" r="${r}"/><circle cx="${cx}" cy="${cyy}" r="${r * .35}"/>`;
+    for(let a = 0; a < 8; a++){
+      const t = a / 8 * Math.PI * 2;
+      p += `<path d="M${cx + Math.cos(t) * r * .35} ${cyy + Math.sin(t) * r * .35} L${cx + Math.cos(t) * r} ${cyy + Math.sin(t) * r}"/>`;
+    }
+    return p;
+  };
+  switch(kind){
+    case 0: return rosette(ox, cy - 13, 7) + rosette(ox, cy + 13, 7);
+    case 1: return [-16, 0, 16].map(d => `<circle cx="${ox - 4}" cy="${cy + d}" r="3.6"/>`).join('');
+    case 2: return `<ellipse cx="${ox}" cy="${cy}" rx="7" ry="13"/>`;
+    case 3: return `<path d="M${x + w - 5} ${y + 5} h-24 c8 1 13 5 15 11 c2 6 5 9 9 10 z"/>`;
+    case 4: return `<rect x="${ox - 9}" y="${cy - 17}" width="18" height="34" rx="3"/>
+                    <circle cx="${ox}" cy="${cy - 4}" r="2.6"/><path d="M${ox - 1.6} ${cy - 2} l-1 8 h5.2 l-1 -8"/>`;
+    case 5: return rosette(ox - 50, cy - 1, 6);
+    case 6: return [-10, 0, 10].map(d => `<circle cx="${x + w * .5 + d}" cy="${y + 11}" r="2"/>`).join('');
+    default: return `<path d="M${ox - 9} ${cy - 14} a9 9 0 0 1 18 0 v28 a9 9 0 0 1 -18 0 z"/>`;
+  }
+}
+
+function buildCabinet(){
+  const W = 600, H = 740;
+  // caisson 60→540, marge intérieure 16, espacement 8
+  const x0 = 76, x1 = 524, y0 = 66, y1 = 650, g = 8;
+  const dw = (x1 - x0 - g * (COLS - 1)) / COLS, dh = (y1 - y0 - g * (ROWS - 1)) / ROWS;
+  const colX = c => x0 + c * (dw + g);
+
+  let s = `<svg class="cabinet" viewBox="0 -8 ${W} ${H + 8}" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Meuble à tiroirs"
+    fill="#fff" stroke="#000" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round">
+  ${COL_TYPE.map((t, c) => `<text x="${colX(c) + dw / 2}" y="10" text-anchor="middle" fill="#111" stroke="none" font-family="'BBB Herthey Futural', sans-serif" font-size="12">${TYPES[t].label.toUpperCase()}</text>`).join('')}
+  <!-- corniche -->
+  <rect x="48" y="28" width="504" height="16"/>
+  <path d="M48 33 h504" stroke-width=".6"/>
+  <!-- caisson -->
+  <rect x="60" y="44" width="480" height="622"/>
+  <path d="M60 50 h480" stroke-width=".6"/>
+  <!-- socle -->
+  <rect x="54" y="666" width="492" height="40"/>
+  <path d="M54 672 h492" stroke-width=".6"/>
+  <path d="M20 706 h560" stroke-width=".8"/>`;
+
+  for(let i = 0; i < N; i++){
+    const r = Math.floor(i / COLS), c = i % COLS;
+    const x = colX(c), y = y0 + r * (dh + g);
+    const cx = x + dw / 2, cy = y + dh / 2;
+    const has = inDrawer(i).length;
+
+    s += `<g class="drawer" data-i="${i}" data-t="${typeOf(i)}" tabindex="0" role="button" aria-label="${TYPES[typeOf(i)].label}, tiroir ${r + 1} : ${esc(drawers[i])}">
+      <g class="slide">
+      ${has ? `<rect x="${cx - dw * .3}" y="${y - 4}" width="${dw * .32}" height="8" transform="rotate(-1.5 ${cx - dw * .3} ${y})"/>
+               <rect x="${cx - dw * .22}" y="${y - 3}" width="${dw * .28}" height="7" transform="rotate(1.2 ${cx} ${y})"/>` : ''}
+      <g class="front">
+        <rect class="face" x="${x}" y="${y}" width="${dw}" height="${dh}"/>
+        <rect x="${x + 6}" y="${y + 6}" width="${dw - 12}" height="${dh - 12}" fill="none" stroke-width=".6"/>
+        <!-- poignée coquille -->
+        <rect x="${cx - 18}" y="${cy - 6}" width="36" height="4" rx="1.5"/>
+        <path d="M${cx - 14} ${cy - 2} C${cx - 14} ${cy + 10}, ${cx + 14} ${cy + 10}, ${cx + 14} ${cy - 2}"/>
+      </g>
+      </g>
+    </g>`;
+  }
+  s += `</svg>`;
+  document.getElementById('cabinet').innerHTML = s;
+
+  const cap = document.getElementById('caption');
+  document.querySelectorAll('.drawer').forEach(d => {
+    const i = +d.dataset.i;
+    const show = () => { const n = inDrawer(i).length; cap.innerHTML = `<b>${esc(drawers[i])}</b> · ${n ? n + ' élément' + (n > 1 ? 's' : '') : 'vide'}`; };
+    d.addEventListener('mouseenter', show);
+    d.addEventListener('focus', show);
+    d.addEventListener('mouseleave', () => cap.textContent = "Cliquez sur un tiroir pour l'ouvrir");
+    d.addEventListener('click', () => pullDrawer(d, i));
+    d.addEventListener('keydown', e => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); pullDrawer(d, i); } });
+  });
+}
+
+function pullDrawer(el, i){
+  el.classList.add('pulled');
+  setTimeout(() => openDrawer(i), 320);
+}
+
+/* ================= Rendu ================= */
+function cardHTML(it){
+  let thumb;
+  const imgIdx = (it.files || []).findIndex(f => f.type.startsWith('image/'));
+  if(imgIdx >= 0) thumb = `<img src="${fileURL(it, imgIdx)}" alt="">`;
+  else if(it.files?.length) thumb = `<span class="glyph">PDF</span>`;
+  else {
+    const txt = it.notes || it.resume || it.avis || it.citations || it.desc || '';
+    thumb = txt ? `<div class="excerpt">${esc(txt)}</div>` : `<span class="glyph">${esc(TYPES[it.type].one.toUpperCase())}</span>`;
+  }
+  const n = it.files?.length || 0;
+  const meta = [it.book, it.author].filter(Boolean).join(' — ') || fmtDate(it.created);
+  return `<button class="card" data-t="${it.type}" data-id="${it.id}">
+    <div class="thumb">${thumb}${n > 1 ? `<span class="count">${n} pages</span>` : ''}</div>
+    <div class="body"><span class="pill"><i class="dot" data-t="${it.type}"></i>${TYPES[it.type].one}</span><h3>${esc(it.title)}</h3><div class="meta">${esc(meta)}</div></div>
+  </button>`;
+}
+function renderGrid(el, list, emptyMsg){
+  el.innerHTML = list.length ? list.sort((a, b) => b.created - a.created).map(cardHTML).join('') : `<div class="empty" style="grid-column:1/-1">${emptyMsg}</div>`;
+  el.querySelectorAll('.card').forEach(c => c.addEventListener('click', () => openItem(c.dataset.id)));
+}
+function chipsHTML(list, current){
+  const all = `<button class="chip" data-f="all" aria-pressed="${current === 'all'}">Tout<small>${list.length}</small></button>`;
+  return all + Object.entries(TYPES).map(([k, t]) =>
+    `<button class="chip" data-f="${k}" aria-pressed="${current === k}"><i class="dot" data-t="${k}"></i>${t.label}<small>${list.filter(i => i.type === k).length}</small></button>`).join('');
+}
+
+function renderLegend(){
+  document.getElementById('legend').innerHTML = Object.entries(TYPES).map(([k, t]) =>
+    `<li><b><i class="dot" data-t="${k}"></i>${t.label}</b><span>${items.filter(i => i.type === k).length}</span></li>`).join('');
+}
+
+let libFilter = 'all';
+function renderLibrary(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const chips = document.getElementById('libChips');
+  chips.innerHTML = chipsHTML(items, libFilter);
+  chips.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { libFilter = c.dataset.f; renderLibrary(); }));
+  const list = items.filter(it => (libFilter === 'all' || it.type === libFilter) &&
+    (!q || [it.title, it.book, it.author, drawers[it.drawer]].join(' ').toLowerCase().includes(q)));
+  renderGrid(document.getElementById('libGrid'), list, items.length ? 'Aucun résultat.' : 'Rien pour l\'instant. Ajoutez un premier scan&nbsp;!');
+}
+
+function renderAll(){
+  buildCabinet();
+  renderLegend();
+  renderLibrary();
+  if(openDrawerIdx !== null) renderDrawer();
+}
+
+/* ================= Tiroir ================= */
+let openDrawerIdx = null, drawerFilter = 'all';
+const drawerDlg = document.getElementById('drawerDlg');
+
+function openDrawer(i){
+  openDrawerIdx = i; drawerFilter = 'all';
+  document.getElementById('drawerNum').textContent = TYPES[typeOf(i)].label;
+  document.getElementById('drawerName').value = drawers[i];
+  renderDrawer();
+  drawerDlg.showModal();
+}
+function renderDrawer(){
+  renderGrid(document.getElementById('drawerGrid'), inDrawer(openDrawerIdx), 'Ce tiroir est vide.');
+}
+drawerDlg.addEventListener('close', () => {
+  openDrawerIdx = null;
+  document.querySelectorAll('.drawer.pulled').forEach(d => d.classList.remove('pulled'));
+});
+document.getElementById('drawerName').addEventListener('change', async e => {
+  const v = e.target.value.trim() || defaultName(openDrawerIdx);
+  drawers[openDrawerIdx] = v; e.target.value = v;
+  await setMeta('drawers', drawers);
+  buildCabinet(); fillDrawerSelects();
+  document.querySelector(`.drawer[data-i="${openDrawerIdx}"]`)?.classList.add('pulled');
+});
+document.getElementById('drawerName').addEventListener('keydown', e => { if(e.key === 'Enter') e.target.blur(); });
+
+/* ================= Ajouter ================= */
+const addDlg = document.getElementById('addDlg'), addForm = document.getElementById('addForm');
+const fFiles = document.getElementById('fFiles'), drop = document.getElementById('drop');
+let pendingFiles = [];
+
+const drawerOptions = t => drawersOf(t).map(i => `<option value="${i}">${esc(drawers[i])}</option>`).join('');
+function fillDrawerSelects(){
+  document.getElementById('fDrawer').innerHTML = drawerOptions(addForm.type.value);
+}
+function syncTypeFields(){
+  const t = addForm.type.value;
+  addForm.querySelectorAll('[data-for]').forEach(el => el.hidden = !el.dataset.for.split(' ').includes(t));
+  addForm.querySelector('h2').textContent = 'Ajouter — ' + TYPES[t].one.toLowerCase();
+  const sel = document.getElementById('fDrawer'), prev = +sel.value;
+  sel.innerHTML = drawerOptions(t);
+  if(typeOf(prev) === t) sel.value = prev;
+}
+function openAdd(type, drawer){
+  addForm.reset(); pendingFiles = []; showFiles();
+  addForm.type.value = type;
+  syncTypeFields();
+  const d = drawer ?? openDrawerIdx;
+  if(d != null && typeOf(d) === type) document.getElementById('fDrawer').value = d;
+  addDlg.showModal();
+  setTimeout(() => document.getElementById('fTitle').focus(), 30);
+}
+addForm.querySelectorAll('input[name=type]').forEach(r => r.addEventListener('change', syncTypeFields));
+
+function showFiles(){
+  document.getElementById('filesList').textContent = pendingFiles.length
+    ? pendingFiles.map(f => f.name).join(', ') : '';
+}
+fFiles.addEventListener('change', () => { pendingFiles.push(...fFiles.files); fFiles.value = ''; showFiles(); });
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { pendingFiles.push(...[...e.dataTransfer.files].filter(f => /^image\/|pdf$/.test(f.type))); showFiles(); });
+
+addForm.addEventListener('submit', async e => {
+  e.preventDefault();
+  const f = addForm, type = f.type.value;
+  if(type === 'scan' && !pendingFiles.length){ drop.classList.add('over'); drop.querySelector('u').textContent = 'ajoutez au moins un fichier'; return; }
+  const it = {
+    id: uid(), type, created: Date.now(),
+    drawer: +f.drawer.value,
+    title: f.title.value.trim(), book: f.book.value.trim(), author: f.author.value.trim(),
+    files: pendingFiles.map(file => ({name: file.name, type: file.type, blob: file}))
+  };
+  if(type === 'fiche'){ it.resume = f.resume.value; it.citations = f.citations.value; it.avis = f.avis.value; }
+  if(type === 'note') it.notes = f.notes.value;
+  if(type === 'scan') it.desc = f.desc.value;
+  await putItem(it);
+  items.push(it);
+  addDlg.close();
+  renderAll();
+});
+
+document.querySelectorAll('[data-add]').forEach(b => b.addEventListener('click', () => openAdd(b.dataset.add)));
+document.getElementById('addHere').addEventListener('click', () => openAdd(typeOf(openDrawerIdx), openDrawerIdx));
+
+/* ================= Lecture ================= */
+const viewDlg = document.getElementById('viewDlg');
+let viewing = null;
+function openItem(id){
+  const it = items.find(x => x.id === id); viewing = it;
+  document.getElementById('vKicker').textContent = TYPES[it.type].one + ' · ' + fmtDate(it.created);
+  document.getElementById('vTitle').textContent = it.title;
+  document.getElementById('vMeta').textContent = [it.book, it.author].filter(Boolean).join(' — ');
+  const blocks = [
+    ['Résumé', it.resume], ['Citations', it.citations], ['Avis & questions', it.avis],
+    ['Notes', it.notes], ['Description', it.desc]
+  ].filter(([, v]) => v && v.trim()).map(([h, v]) => `<div class="text-block"><h4>${h}</h4><p>${esc(v)}</p></div>`).join('');
+  const pages = (it.files || []).map((f, k) => {
+    const u = fileURL(it, k);
+    if(f.type.startsWith('image/')) return `<a href="${u}" target="_blank"><img src="${u}" alt="${esc(f.name)}"></a>`;
+    if(f.type === 'application/pdf') return `<iframe src="${u}" title="${esc(f.name)}"></iframe><a class="file" href="${u}" target="_blank" download="${esc(f.name)}">Ouvrir ${esc(f.name)}</a>`;
+    return `<a class="file" href="${u}" download="${esc(f.name)}">${esc(f.name)}</a>`;
+  }).join('');
+  document.getElementById('vBody').innerHTML = blocks + (pages ? `<div class="viewer-pages">${pages}</div>` : '') || '<p style="color:var(--muted)">Pas de contenu.</p>';
+  document.querySelector('#viewDlg .dlg-foot').hidden = !!it.seed;
+  document.getElementById('vMove').innerHTML = drawerOptions(it.type);
+  document.getElementById('vMove').value = it.drawer;
+  viewDlg.showModal();
+}
+document.getElementById('vMove').addEventListener('change', async e => {
+  viewing.drawer = +e.target.value; await putItem(viewing); renderAll();
+});
+document.getElementById('vDelete').addEventListener('click', async () => {
+  if(!confirm(`Supprimer « ${viewing.title} » ?`)) return;
+  await delItem(viewing.id);
+  items = items.filter(x => x.id !== viewing.id);
+  viewDlg.close(); renderAll();
+});
+
+/* ================= Divers ================= */
+document.querySelectorAll('dialog').forEach(d => {
+  d.addEventListener('click', e => { if(e.target === d) d.close(); });
+  d.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => d.close()));
+});
+
+document.querySelectorAll('nav.views button[data-view]').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('nav.views button[data-view]').forEach(x => x.setAttribute('aria-current', x === b));
+  document.getElementById('view-home').hidden = b.dataset.view !== 'home';
+  document.getElementById('view-library').hidden = b.dataset.view !== 'library';
+}));
+document.getElementById('search').addEventListener('input', renderLibrary);
+document.getElementById('logo').addEventListener('click', () => { document.querySelector('[data-view=home]').click(); scrollTo({top:0, behavior:'smooth'}); });
+
+/* Sauvegarde JSON (pour partager entre membres / changer d'ordinateur) */
+const toB64 = blob => new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const out = [];
+  for(const it of items.filter(x => !x.seed)){
+    out.push({...it, files: await Promise.all((it.files || []).map(async f => ({name: f.name, type: f.type, data: await toB64(f.blob)})))});
+  }
+  const blob = new Blob([JSON.stringify({drawers, items: out})], {type:'application/json'});
+  const a = Object.assign(document.createElement('a'), {href: URL.createObjectURL(blob), download: `book-club-${new Date().toISOString().slice(0,10)}.json`});
+  a.click();
+});
+document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', async e => {
+  const file = e.target.files[0]; if(!file) return;
+  try{
+    const data = JSON.parse(await file.text());
+    for(const it of data.items || []){
+      it.files = await Promise.all((it.files || []).map(async f => ({name: f.name, type: f.type, blob: await (await fetch(f.data)).blob()})));
+      await putItem(it);
+      const k = items.findIndex(x => x.id === it.id);
+      k >= 0 ? items[k] = it : items.push(it);
+    }
+    if(Array.isArray(data.drawers) && data.drawers.length === N){ drawers = data.drawers; await setMeta('drawers', drawers); }
+    fillDrawerSelects(); renderAll();
+    alert('Import terminé : ' + (data.items || []).length + ' élément(s).');
+  }catch(err){ alert('Fichier de sauvegarde illisible.'); }
+  e.target.value = '';
+});
+
+/* ================= Démarrage ================= */
+(async () => {
+  db = await openDB();
+  const seed = (window.BOOKCLUB_CONTENUS || []).map(it => ({...it, seed: true, created: Date.parse(it.date) || 0}));
+  items = [...seed, ...await getAll()];
+  drawers = (await getMeta('drawers')) || Array.from({length: N}, (_, i) => defaultName(i));
+  fillDrawerSelects();
+  renderAll();
+})();
+</script>
+</body>
+</html>
