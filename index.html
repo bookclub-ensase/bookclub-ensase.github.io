@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book Club</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body class="readonly">
 
@@ -37,16 +37,16 @@
     <div class="home">
       <div class="intro">
         <p>Trois rangées&nbsp;: les textes scannés, les prises de notes des séances et les fiches de lecture. Ouvrez un tiroir pour voir ce qu'il contient.</p>
+        <div class="add-links">
+          <a class="btn primary" href="admin.html?add=scan"><i class="dot" data-t="scan"></i>+ Ajouter un texte</a>
+          <a class="btn" href="admin.html?add=note"><i class="dot" data-t="note"></i>+ Ajouter une prise de note</a>
+          <a class="btn" href="admin.html?add=fiche"><i class="dot" data-t="fiche"></i>+ Ajouter une fiche de lecture</a>
+        </div>
         <ul class="legend" id="legend"></ul>
       </div>
       <div class="cabinet-wrap">
         <div id="cabinet"></div>
         <div class="caption" id="caption">Cliquez sur un tiroir pour l'ouvrir</div>
-      </div>
-      <div class="add-links">
-          <a class="btn primary" href="admin.html?add=scan"><i class="dot" data-t="scan"></i>+ Ajouter un texte</a>
-          <a class="btn" href="admin.html?add=note"><i class="dot" data-t="note"></i>+ Ajouter une prise de note</a>
-          <a class="btn" href="admin.html?add=fiche"><i class="dot" data-t="fiche"></i>+ Ajouter une fiche de lecture</a>
       </div>
     </div>
   </section>
