@@ -15,6 +15,7 @@
     <button data-tab="items" aria-current="true">Éléments</button>
     <button data-tab="drawers">Tiroirs</button>
     <button data-tab="calendar">Calendrier</button>
+    <button data-tab="members">Membres</button>
     <button id="logoutBtn">Se déconnecter</button>
   </nav>
 </header>
@@ -28,7 +29,8 @@
   </section>
 
   <section id="login" class="panel" hidden>
-    <h2>Connexion</h2>
+    <h2 id="loginTitle">Connexion</h2>
+    <p class="meta" id="signupHelp" hidden style="margin-top:0">Votre e-mail doit d'abord avoir été ajouté par un membre (onglet Membres). Choisissez ensuite votre mot de passe.</p>
     <form id="loginForm">
       <label for="email">E-mail</label>
       <input type="email" id="email" autocomplete="username" required>
@@ -36,7 +38,10 @@
       <input type="password" id="pw" autocomplete="current-password" required>
       <label style="display:flex;gap:6px;align-items:center;text-transform:none;margin:-4px 0 10px;cursor:pointer"><input type="checkbox" id="pwShow" style="width:auto;margin:0"> Afficher le mot de passe</label>
       <div class="err" id="loginErr"></div>
-      <button class="btn primary" type="submit">Entrer</button>
+      <div class="inline" style="justify-content:space-between;text-transform:none">
+        <button class="btn primary" type="submit" id="loginSubmit">Entrer</button>
+        <button type="button" id="modeToggle" style="background:none;border:0;text-decoration:underline;cursor:pointer;font-size:15px;padding:0">Pas encore de compte ? Créer mon compte</button>
+      </div>
     </form>
   </section>
 
@@ -71,6 +76,17 @@
       </div>
       <div class="drawer-cols" id="drawerCols"></div>
     </div>
+    <div id="tab-members" hidden>
+      <div class="section-head"><h2>Membres</h2></div>
+      <form id="memberForm" class="inline" style="text-transform:none;margin-bottom:16px">
+        <input type="email" id="memberEmail" class="search" placeholder="e-mail à inviter" required style="flex:1;min-width:220px">
+        <button class="btn primary" type="submit">+ Inviter</button>
+        <span class="status" id="memberStatus"></span>
+      </form>
+      <p class="meta" style="margin:0 0 12px">La personne invitée va ensuite sur cette page, clique sur « Créer mon compte » et choisit son mot de passe.</p>
+      <div class="rows" id="memberRows"></div>
+    </div>
+
     <div id="tab-calendar" hidden>
       <div class="section-head">
         <h2>Calendrier</h2>
@@ -247,21 +263,73 @@ function show(id){
 }
 document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('[data-tab]').forEach(x => x.setAttribute('aria-current', x === b));
-  ['items', 'drawers', 'calendar'].forEach(t => $('#tab-' + t).hidden = b.dataset.tab !== t);
+  ['items', 'drawers', 'calendar', 'members'].forEach(t => $('#tab-' + t).hidden = b.dataset.tab !== t);
+  if (b.dataset.tab === 'members') loadMembers();
 }));
 
+let signupMode = false;
+$('#modeToggle').addEventListener('click', () => {
+  signupMode = !signupMode;
+  $('#loginTitle').textContent = signupMode ? 'Créer mon compte' : 'Connexion';
+  $('#loginSubmit').textContent = signupMode ? 'Créer mon compte' : 'Entrer';
+  $('#modeToggle').textContent = signupMode ? 'J’ai déjà un compte : me connecter' : 'Pas encore de compte ? Créer mon compte';
+  $('#signupHelp').hidden = !signupMode;
+  $('#pw').autocomplete = signupMode ? 'new-password' : 'current-password';
+  $('#loginErr').textContent = '';
+});
 $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault(); $('#loginErr').textContent = '';
-  try { chk(await sb.auth.signInWithPassword({email: $('#email').value.trim(), password: $('#pw').value})); $('#pw').value = ''; await enter(); }
-  catch (err) {
-    const c = err.code || err.message || '';
-    $('#loginErr').textContent = /not_confirmed|not confirmed/i.test(c) ? 'Compte pas encore confirmé (cocher « Auto Confirm User » dans Supabase).'
+  const email = $('#email').value.trim().toLowerCase(), password = $('#pw').value;
+  try {
+    if (signupMode) {
+      if (password.length < 6) throw {code: 'weak'};
+      const {data, error} = await sb.auth.signUp({email, password});
+      if (error) throw error;
+      if (!data.session) { $('#loginErr').textContent = 'Compte créé. Ouvrez le mail de confirmation reçu, puis revenez vous connecter.'; return; }
+    } else {
+      chk(await sb.auth.signInWithPassword({email, password}));
+    }
+    $('#pw').value = ''; await enter();
+  } catch (err) {
+    const c = (err.code || '') + ' ' + (err.message || '');
+    $('#loginErr').textContent =
+      /weak|least|short/i.test(c) ? 'Mot de passe trop court (6 caractères minimum).'
+      : /already|exists/i.test(c) ? 'Un compte existe déjà pour cet e-mail : connectez-vous.'
+      : /database error|non invit|unexpected_failure/i.test(c) ? 'Cet e-mail n’a pas été invité. Demandez à un membre de l’ajouter dans l’onglet Membres.'
+      : /signup.*disabled|signups not allowed/i.test(c) ? 'La création de compte est désactivée dans Supabase.'
+      : /not_confirmed|not confirmed/i.test(c) ? 'Compte pas encore confirmé.'
       : /invalid/i.test(c) ? 'E-mail ou mot de passe incorrect.'
       : 'Connexion impossible : ' + (err.message || c);
   }
 });
 $('#pwShow').addEventListener('change', e => { $('#pw').type = e.target.checked ? 'text' : 'password'; });
 $('#logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); show('login'); });
+async function loadMembers(){
+  try {
+    const me = ((await sb.auth.getUser()).data.user?.email || '').toLowerCase();
+    const list = chk(await sb.from('membres').select('email, ajoute_le').order('email'));
+    $('#memberRows').innerHTML = list.length ? list.map(m => `
+      <div class="row" style="grid-template-columns:minmax(0,1fr) 140px auto">
+        <div><b>${esc(m.email)}</b>${m.email === me ? '<span class="meta">vous</span>' : ''}</div>
+        <span class="meta">${fmtDate(m.ajoute_le)}</span>
+        <div class="actions">${m.email === me ? '' : `<button class="btn danger" data-mdel="${esc(m.email)}">Retirer</button>`}</div>
+      </div>`).join('') : '<div class="empty">Aucun membre.</div>';
+    $('#memberRows').querySelectorAll('[data-mdel]').forEach(b => b.addEventListener('click', async () => {
+      if (!confirm(`Retirer ${b.dataset.mdel} ? Cette personne ne pourra plus modifier le site.`)) return;
+      try { chk(await sb.from('membres').delete().eq('email', b.dataset.mdel)); loadMembers(); }
+      catch (err) { $('#memberStatus').textContent = 'Erreur : ' + err.message; }
+    }));
+  } catch (err) { $('#memberRows').innerHTML = `<div class="empty">Liste indisponible (${esc(err.message)}). Le script membres.sql a-t-il été lancé dans Supabase ?</div>`; }
+}
+$('#memberForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const email = $('#memberEmail').value.trim().toLowerCase();
+  try {
+    chk(await sb.from('membres').insert({email}));
+    $('#memberEmail').value = ''; $('#memberStatus').textContent = email + ' est invité·e.'; loadMembers();
+  } catch (err) { $('#memberStatus').textContent = /duplicate|23505/.test(err.code + err.message) ? 'Déjà invité·e.' : 'Erreur : ' + err.message; }
+});
+
 async function enter(){
   await load(); show('app');
   const q = new URLSearchParams(location.search), t = q.get('add');
