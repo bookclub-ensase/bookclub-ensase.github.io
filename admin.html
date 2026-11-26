@@ -447,9 +447,15 @@ function syncType(){
   const t = form.type.value;
   form.querySelectorAll('[data-for]').forEach(el => el.hidden = el.dataset.for !== t);
   const sel = $('#fDrawer'), prev = sel.value === '' ? -1 : +sel.value;
-  sel.innerHTML = drawersOf(t).map(i => `<option value="${i}">${esc(drawers[i])}</option>`).join('');
-  if (prev >= 0 && typeOf(prev) === t) sel.value = prev;
+  sel.innerHTML = drawersOf(t).map(i => `<option value="${i}" ${occupied(i) ? 'disabled' : ''}>${esc(drawers[i])}${occupied(i) ? ' — occupé' : ''}</option>`).join('');
+  const free = drawersOf(t).filter(i => !occupied(i));
+  if (prev >= 0 && typeOf(prev) === t && !occupied(prev)) sel.value = prev;
+  else if (free.length) sel.value = free[0];
+  $('#saveBtn').disabled = !free.length;
+  $('#editStatus').textContent = free.length ? '' : `Tous les tiroirs « ${TYPES[t].label} » sont déjà remplis.`;
 }
+// un seul élément par tiroir
+const occupied = i => items.some(it => it.drawer === i && it.id !== editing?.id);
 form.querySelectorAll('input[name=type]').forEach(r => r.addEventListener('change', syncType));
 
 function renderFiles(){
@@ -463,7 +469,7 @@ function renderFiles(){
 
 function openEdit(it, type, drawer){
   editing = it || null; pending = []; removed = [];
-  form.reset(); $('#editStatus').textContent = ''; $('#saveBtn').disabled = false;
+  form.reset();
   form.type.value = it?.type || type || 'scan';
   $('#fDrawer').value = '';
   syncType();
@@ -472,7 +478,7 @@ function openEdit(it, type, drawer){
     form.resume.value = it.resume; form.citations.value = it.citations; form.avis.value = it.avis;
     form.notes.value = it.notes; form.desc.value = it.desc;
     $('#fDrawer').value = it.drawer;
-  } else if (drawer != null && typeOf(drawer) === form.type.value) $('#fDrawer').value = drawer;
+  } else if (drawer != null && typeOf(drawer) === form.type.value && !occupied(drawer)) $('#fDrawer').value = drawer;
   $('#editTitle').textContent = it ? 'Modifier' : 'Ajouter';
   renderFiles();
   dlg.showModal();
@@ -505,7 +511,10 @@ form.addEventListener('submit', async e => {
       notes: t === 'note' ? form.notes.value : '', desc: t === 'scan' ? form.desc.value : '',
       files: [...kept, ...uploaded]
     };
-    await commit(d => { const k = d.items.findIndex(i => i.id === id); k >= 0 ? d.items[k] = it : d.items.unshift(it); });
+    await commit(d => {
+      if (d.items.some(i => i.drawer === it.drawer && i.id !== it.id)) throw new Error('ce tiroir vient d’être rempli par quelqu’un d’autre. Choisissez-en un autre.');
+      const k = d.items.findIndex(i => i.id === id); k >= 0 ? d.items[k] = it : d.items.unshift(it);
+    });
     await cleanFiles(removed);
     dlg.close();
     render();
