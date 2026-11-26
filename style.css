@@ -202,3 +202,5 @@ details.cr p{margin:8px 0 0}
 .s-actions{margin-top:12px}
 .seance.is-past{opacity:1}
 .seance.is-past .s-date,.seance.is-past h3,.seance.is-past .s-meta{opacity:.55}
+
+a.next-seance{text-decoration:none;color:inherit}

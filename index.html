@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book Club</title>
-<link rel="stylesheet" href="style.css?v=6">
+<link rel="stylesheet" href="style.css?v=7">
 </head>
 <body class="readonly">
 
@@ -397,12 +397,11 @@ function renderCalendar(){
   document.getElementById('calPast').innerHTML = past.map(seanceHTML).join('');
   document.querySelectorAll('#view-calendar [data-id]').forEach(b => b.addEventListener('click', () => openItem(b.dataset.id)));
   const next = up[0];
-  document.getElementById('nextSeance').innerHTML = next ? `<button class="next-seance" id="nextBtn">
+  document.getElementById('nextSeance').innerHTML = next ? `<a class="next-seance" id="nextBtn" href="https://eensase.vercel.app/?semaine=${encodeURIComponent(next.date)}#planning" target="_blank" rel="noopener" title="Voir dans le planning EENSASE">
     <span class="kicker">Prochaine séance</span>
     <span>${dayLabel(next)}${next.heure ? ', ' + horaire(next) : ''}${next.salle ? ' · Salle : ' + esc(next.salle) : ''}</span>
     ${(next.textes || []).length || next.lecture ? `<span class="s-libre">À lire : ${esc([...(next.textes || []).map(id => items.find(i => i.id === id)?.title).filter(Boolean), next.lecture].filter(Boolean).join(', '))}</span>` : ''}
-  </button>` : '';
-  document.getElementById('nextBtn')?.addEventListener('click', () => { document.querySelector('[data-view=calendar]').click(); scrollTo({top: 0, behavior: 'smooth'}); });
+  </a>` : '';
 }
 
 function renderAll(){
