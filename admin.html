@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Back office · Book Club</title>
 <meta name="robots" content="noindex">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 
@@ -176,6 +176,7 @@
       </div>
       <div class="field"><label for="sLecture">Autre lecture <span style="text-transform:none">(texte libre)</span></label><input type="text" id="sLecture" placeholder="Ex. chapitres 2 et 3"></div>
       <div class="field"><label for="sDesc">Informations</label><textarea id="sDesc" style="min-height:70px"></textarea></div>
+      <div class="field"><label for="sCR">Compte rendu de la séance <span style="text-transform:none">(après la séance)</span></label><textarea id="sCR" style="min-height:180px" placeholder="Ce qui s'est dit, les pistes, les textes pour la suite…"></textarea></div>
     </div>
     <div class="dlg-foot">
       <span class="status" id="seanceStatus"></span>
@@ -334,6 +335,12 @@ async function enter(){
   await load(); show('app');
   const q = new URLSearchParams(location.search), t = q.get('add');
   if (t && TYPES[t]) openEdit(null, t, q.has('drawer') ? +q.get('drawer') : null);
+  const sq = q.get('seance');
+  if (sq) {
+    document.querySelector('[data-tab=calendar]').click();
+    if (sq === 'new') openSeance(null);
+    else { const se = seances.find(x => x.id === sq); if (se) { openSeance(se); if (q.has('cr')) setTimeout(() => $('#sCR').focus(), 50); } }
+  }
   if (location.search) history.replaceState(null, '', location.pathname);
 }
 
@@ -363,7 +370,7 @@ function render(){
   $('#seanceRows').innerHTML = sorted.length ? sorted.map(se => `
     <div class="row">
       <span class="pill">${fmtDate(se.date)}${se.heure ? ' · ' + se.heure.replace(/^0/, '').replace(':', 'h') + (se.fin ? '–' + se.fin.replace(/^0/, '').replace(':', 'h') : '') : ''}</span>
-      <div><b>${esc(se.titre || 'Séance')}</b><span class="meta">${esc([...(se.textes || []).map(id => items.find(i => i.id === id)?.title).filter(Boolean), se.lecture].filter(Boolean).join(', ') || 'Pas de lecture indiquée')}</span></div>
+      <div><b>${esc(se.titre || 'Séance')}</b><span class="meta">${esc([...(se.textes || []).map(id => items.find(i => i.id === id)?.title).filter(Boolean), se.lecture].filter(Boolean).join(', ') || 'Pas de lecture indiquée')}${se.compte_rendu ? ' · compte rendu ✓' : ''}</span></div>
       <span class="meta">${esc(se.salle || '')}</span>
       <span class="meta">${new Date(se.date + 'T23:59') < new Date() ? 'passée' : 'à venir'}</span>
       <div class="actions"><button class="btn" data-sedit="${se.id}">Modifier</button><button class="btn danger" data-sdel="${se.id}">Supprimer</button></div>
@@ -417,7 +424,7 @@ function openSeance(se){
   $('#seanceTitle').textContent = se ? 'Modifier la séance' : 'Nouvelle séance';
   $('#sDate').value = se?.date || ''; $('#sHeure').value = se?.heure || ''; $('#sFin').value = se?.fin || '';
   $('#sSalle').value = se?.salle || ''; $('#sTitre').value = se?.titre || '';
-  $('#sLecture').value = se?.lecture || ''; $('#sDesc').value = se?.description || '';
+  $('#sLecture').value = se?.lecture || ''; $('#sDesc').value = se?.description || ''; $('#sCR').value = se?.compte_rendu || '';
   const chosen = new Set(se?.textes || []);
   const order = ['scan', 'fiche', 'note'];
   const list = items.slice().sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type) || a.title.localeCompare(b.title));
@@ -433,7 +440,7 @@ sForm.addEventListener('submit', async e => {
     date: $('#sDate').value, heure: $('#sHeure').value, fin: $('#sFin').value,
     salle: $('#sSalle').value.trim(), titre: $('#sTitre').value.trim(),
     textes: [...$('#sTextes').querySelectorAll('input:checked')].map(c => c.value),
-    lecture: $('#sLecture').value.trim(), description: $('#sDesc').value.trim()
+    lecture: $('#sLecture').value.trim(), description: $('#sDesc').value.trim(), compte_rendu: $('#sCR').value.trim()
   };
   try {
     await commit(d => { const k = d.seances.findIndex(x => x.id === se.id); k >= 0 ? d.seances[k] = se : d.seances.push(se); });

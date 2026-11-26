@@ -194,3 +194,11 @@ input[type=date],input[type=time]{border:var(--dot);background:#fff;border-radiu
 .add-links{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:0 0 28px;width:min(900px,calc(100vw - 32px));position:relative;left:50%;transform:translateX(-50%)}
 a.btn{text-decoration:none;color:inherit}
 a.btn.primary{color:#fff}
+
+/* comptes rendus de séance */
+details.cr{margin-top:12px;border-top:var(--dot);padding-top:8px}
+details.cr summary{cursor:pointer;text-transform:uppercase;font-size:14px}
+details.cr p{margin:8px 0 0}
+.s-actions{margin-top:12px}
+.seance.is-past{opacity:1}
+.seance.is-past .s-date,.seance.is-past h3,.seance.is-past .s-meta{opacity:.55}

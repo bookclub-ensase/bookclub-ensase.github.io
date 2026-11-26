@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Book Club</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body class="readonly">
 
@@ -13,6 +13,7 @@
     <button data-view="home" aria-current="true">Le meuble</button>
     <button data-view="library">Tout voir</button>
     <button data-view="calendar">Calendrier</button>
+    <a href="https://eensase.vercel.app" target="_blank" rel="noopener">ENSASE ↗</a>
     <button data-add="scan">+ Texte</button>
     <button data-add="note">+ Prise de note</button>
     <button data-add="fiche">+ Fiche de lecture</button>
@@ -53,7 +54,7 @@
 
   <!-- Calendrier -->
   <section id="view-calendar" hidden>
-    <div class="section-head"><h2>Calendrier</h2></div>
+    <div class="section-head"><h2>Calendrier</h2><a class="btn primary" href="admin.html?seance=new">+ Ajouter une séance</a></div>
     <div id="calUpcoming"></div>
     <details class="past" id="calPastWrap" hidden><summary>Séances passées</summary><div id="calPast"></div></details>
   </section>
@@ -384,6 +385,8 @@ function seanceHTML(s){
       <h3>${esc(s.titre || 'Séance')}</h3>
       ${lectures(s)}
       ${s.description ? `<p>${esc(s.description)}</p>` : ''}
+      ${s.compte_rendu ? `<details class="cr"${isPast(s) ? ' open' : ''}><summary>Compte rendu</summary><p>${esc(s.compte_rendu)}</p></details>` : ''}
+      ${isPast(s) ? `<div class="s-actions"><a class="btn" href="admin.html?seance=${encodeURIComponent(s.id)}&cr=1">${s.compte_rendu ? 'Modifier le compte rendu' : '+ Ajouter un compte rendu'}</a></div>` : ''}
     </div>
   </article>`;
 }
