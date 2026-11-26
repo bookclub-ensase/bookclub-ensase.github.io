@@ -204,3 +204,6 @@ details.cr p{margin:8px 0 0}
 .seance.is-past .s-date,.seance.is-past h3,.seance.is-past .s-meta{opacity:.55}
 
 a.next-seance{text-decoration:none;color:inherit}
+
+/* logo violet en bas : plus gras, sans coupure */
+.logo{line-height:1.25;padding:6px 12px 2px;overflow:visible;-webkit-text-stroke:2px var(--violet);paint-order:stroke fill;letter-spacing:.01em}
