@@ -540,6 +540,7 @@ document.querySelectorAll('dialog').forEach(d => {
 (async () => {
   if (!sb) return show('setup');
   if (CFG.clubEmail) $('#email').value = CFG.clubEmail;
+  if (new URLSearchParams(location.search).has('inscription')) $('#modeToggle').click();
   try { (await sb.auth.getSession()).data.session ? await enter() : show('login'); }
   catch (err) { show('login'); $('#loginErr').textContent = 'Base en ligne injoignable : ' + err.message; }
 })();
