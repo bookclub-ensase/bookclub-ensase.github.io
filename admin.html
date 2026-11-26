@@ -34,6 +34,7 @@
       <input type="email" id="email" autocomplete="username" required>
       <label for="pw">Mot de passe</label>
       <input type="password" id="pw" autocomplete="current-password" required>
+      <label style="display:flex;gap:6px;align-items:center;text-transform:none;margin:-4px 0 10px;cursor:pointer"><input type="checkbox" id="pwShow" style="width:auto;margin:0"> Afficher le mot de passe</label>
       <div class="err" id="loginErr"></div>
       <button class="btn primary" type="submit">Entrer</button>
     </form>
@@ -252,8 +253,14 @@ document.querySelectorAll('[data-tab]').forEach(b => b.addEventListener('click',
 $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault(); $('#loginErr').textContent = '';
   try { chk(await sb.auth.signInWithPassword({email: $('#email').value.trim(), password: $('#pw').value})); $('#pw').value = ''; await enter(); }
-  catch { $('#loginErr').textContent = 'E-mail ou mot de passe incorrect.'; }
+  catch (err) {
+    const c = err.code || err.message || '';
+    $('#loginErr').textContent = /not_confirmed|not confirmed/i.test(c) ? 'Compte pas encore confirmé (cocher « Auto Confirm User » dans Supabase).'
+      : /invalid/i.test(c) ? 'E-mail ou mot de passe incorrect.'
+      : 'Connexion impossible : ' + (err.message || c);
+  }
 });
+$('#pwShow').addEventListener('change', e => { $('#pw').type = e.target.checked ? 'text' : 'password'; });
 $('#logoutBtn').addEventListener('click', async () => { await sb.auth.signOut(); show('login'); });
 async function enter(){
   await load(); show('app');
